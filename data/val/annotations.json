@@ -1,0 +1,38 @@
+{
+  "images": [
+    {
+      "id": 1,
+      "file_name": "example_frame_val_001.jpg",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [150, 250, 160, 320],
+      "area": 51200,
+      "iscrowd": 0
+    },
+    {
+      "id": 2,
+      "image_id": 1,
+      "category_id": 2,
+      "bbox": [850, 550, 25, 25],
+      "area": 625,
+      "iscrowd": 0
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "player"
+    },
+    {
+      "id": 2,
+      "name": "ball"
+    }
+  ]
+}
