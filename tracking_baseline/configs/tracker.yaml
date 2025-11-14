@@ -1,0 +1,9 @@
+appearance_weight: 0.5
+iou_weight: 0.5
+max_cosine_dist: 0.5
+min_iou: 0.3
+max_age: 30
+n_init: 3
+embed_normalize: true
+ball_class_id: 1
+player_class_id: 0
