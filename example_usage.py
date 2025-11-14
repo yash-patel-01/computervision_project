@@ -12,11 +12,6 @@ import sys
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-import torch
-from models.detector import FootballDetector
-from data.dataset import FootballTrackingDataset, get_train_transforms, collate_fn
-from torch.utils.data import DataLoader
-
 
 def example_training():
     """
