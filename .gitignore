@@ -2,6 +2,7 @@
 data/jersey-2023/
 data/tracking-2023/
 data/per_seq/
+data/coco_pseudo.json
 
 # But keep the data directory structure visible
 !data/.gitkeep
