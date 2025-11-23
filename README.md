@@ -12,9 +12,13 @@ The model outputs bounding box coordinates for each detected object in video fra
 
 ## Dataset
 
-- **Training data:** `data/tracking-2023/train/` and `data/tracking-2023/test/`
-  - Contains annotated clips with ground truth bounding boxes
+- **Training data:** `data/tracking-2023/train/`
+  - Contains annotated clips with ground truth bounding boxes for training
   - Ball labels are not provided - we generate them automatically
+  
+- **Test data:** `data/tracking-2023/test/`
+  - Annotated clips for model evaluation and performance metrics
+  - Also requires ball label generation
   
 - **Challenge data:** `data/tracking-2023/challenge2023/`
   - Unannotated clips where we apply our trained model
@@ -42,32 +46,47 @@ python batch_ball_labeling.py
 - Analyzes all tracks across train/test sequences
 - Identifies balls using size, roundness, and movement patterns
 - Creates `data/ball_tracks.json` (ball track IDs per sequence)
-- Creates `data/coco_pseudo.json` (merged COCO-format annotations for all sequences)
+- Creates `data/coco_train.json` (COCO-format annotations for training, ~42K images)
+- Creates `data/coco_test.json` (COCO-format annotations for evaluation, ~37K images)
 
-**Note:** `coco_pseudo.json` is large (182MB) and excluded from git.
+**Note:** COCO JSON files are large and excluded from git.
 
 ### Step 2: Train the Detection Model
 
-Train Faster R-CNN on the labeled data:
+Train Faster R-CNN on the **training set only**:
 
 ```bash
 cd tracking_baseline/train
-python train_frcnn.py --epochs 10 --batch-size 4
+python train_frcnn.py --epochs 10 --batch-size 4 --data-root ../../data
 ```
 
 **Options:**
 - `--epochs`: Number of training epochs (default: 6)
 - `--batch-size`: Batch size (default: 4)
 - `--lr`: Learning rate (default: 0.005)
-- `--coco-json`: Path to annotations (default: `data/coco_pseudo.json`)
+- `--coco-json`: Path to training annotations (default: `data/coco_train.json`)
+- `--data-root`: Path to data directory (default: `../../data`)
 - `--output-dir`: Where to save model checkpoints (default: `train/runs/frcnn/`)
 
 **Output:**
 - Model checkpoints saved to `tracking_baseline/train/runs/frcnn/`
-- `model_best.pth`: Best model based on validation loss
 - `model_epoch{N}.pth`: Checkpoint after each epoch
 
-### Step 3: Run Inference (Coming Soon)
+### Step 3: Evaluate on Test Set
+
+Evaluate your trained model on the **test set**:
+
+```bash
+cd tracking_baseline/train
+python eval_coco.py --checkpoint runs/frcnn/model_epoch6.pth --data-root ../../data
+```
+
+**What it does:**
+- Runs inference on test set images
+- Computes COCO metrics (AP, AP50, AP75, AP_small for ball detection)
+- Saves metrics to `runs/frcnn/eval_metrics.json`
+
+### Step 4: Run Inference (Coming Soon)
 
 Apply your trained model to generate predictions on the challenge clips.
 
@@ -84,7 +103,8 @@ Code/
 │   │   ├── test/                       # Test clips + annotations
 │   │   └── challenge2023/              # Challenge clips (no annotations)
 │   ├── ball_tracks.json                # Generated: ball track IDs
-│   └── coco_pseudo.json                # Generated: merged training annotations (182MB)
+│   ├── coco_train.json                 # Generated: training annotations (~42K images)
+│   └── coco_test.json                  # Generated: test annotations (~37K images)
 └── tracking_baseline/                  # Training and inference code
     ├── README.md                       # Detailed baseline documentation
     ├── requirements.txt                # Python dependencies

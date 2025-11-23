@@ -80,11 +80,11 @@ def evaluate(coco_gt_path: Path, detections: list[dict]):
 
 
 def main():
-    a = argparse.ArgumentParser(description='Evaluate Faster R-CNN checkpoint on pseudo COCO')
+    a = argparse.ArgumentParser(description='Evaluate Faster R-CNN checkpoint on test COCO')
     cwd = Path(__file__).resolve().parent
     default_data_root = (cwd / ".." / 'data').resolve()
     a.add_argument('--data-root', type=Path, default=default_data_root)
-    a.add_argument('--coco-json', type=Path, default=None)
+    a.add_argument('--coco-json', type=Path, default=None, help='Path to coco_test.json; default under data/')
     a.add_argument('--checkpoint', type=Path, required=True)
     a.add_argument('--batch-size', type=int, default=4)
     a.add_argument('--num-workers', type=int, default=4)
@@ -93,7 +93,7 @@ def main():
 
     args = a.parse_args()
     device = get_device()
-    coco_json = args.coco_json or (args.data_root / 'coco_pseudo.json')
+    coco_json = args.coco_json or (args.data_root / 'coco_test.json')
     if not coco_json.is_file():
         raise FileNotFoundError(f"COCO annotations not found at {coco_json}")
 

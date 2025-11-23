@@ -113,7 +113,8 @@ Ensure data structure matches:
 ```
 tracking_baseline/
   data/
-    coco_pseudo.json
+    coco_train.json
+    coco_test.json
     ball_tracks.json
     tracking-2023/
       train/

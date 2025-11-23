@@ -5,7 +5,7 @@ import time
 import json
 
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.transforms import functional as F
@@ -76,7 +76,7 @@ def main():
     cwd = Path(__file__).resolve().parent
     default_data_root = (cwd / ".." / "data").resolve()
     p.add_argument('--data-root', type=Path, default=default_data_root, help='Path to Project/Code/data')
-    p.add_argument('--coco-json', type=Path, default=None, help='Path to coco_pseudo.json; default under data/')
+    p.add_argument('--coco-json', type=Path, default=None, help='Path to coco_train.json; default under data/')
     p.add_argument('--epochs', type=int, default=6)
     p.add_argument('--batch-size', type=int, default=4)
     p.add_argument('--lr', type=float, default=0.005)
@@ -84,7 +84,6 @@ def main():
     p.add_argument('--weight-decay', type=float, default=0.0005)
     p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--limit', type=int, default=None, help='Optional: limit number of images for a quick dry-run')
-    p.add_argument('--val-split', type=float, default=0.1, help='Fraction for validation split')
     p.add_argument('--output-dir', type=Path, default=(cwd / 'runs' / 'frcnn').resolve())
     p.add_argument('--resume', type=Path, default=None)
     p.add_argument('--log-interval', type=int, default=50)
@@ -93,7 +92,7 @@ def main():
     device = get_device()
     print(f"Using device: {device}")
 
-    coco_json = args.coco_json or (args.data_root / 'coco_pseudo.json')
+    coco_json = args.coco_json or (args.data_root / 'coco_train.json')
     if not coco_json.is_file():
         raise FileNotFoundError(f"COCO annotations not found at {coco_json}")
 
@@ -104,10 +103,8 @@ def main():
     num_classes = max_cat_id + 1  # +1 for background as class 0
     print(f"Detected {len(coco_data['categories'])} categories; setting num_classes={num_classes}")
 
-    ds = CocoBallDataset(args.data_root, coco_json, transforms=default_transforms, limit=args.limit)
-    val_size = int(len(ds) * args.val_split)
-    train_size = len(ds) - val_size
-    train_ds, val_ds = random_split(ds, [train_size, val_size]) if val_size > 0 else (ds, None)
+    train_ds = CocoBallDataset(args.data_root, coco_json, transforms=default_transforms, limit=args.limit)
+    print(f"Training on {len(train_ds)} images from train set")
 
     train_loader = DataLoader(
         train_ds,
@@ -117,16 +114,6 @@ def main():
         collate_fn=collate_fn,
         pin_memory=(device.type != 'cpu')
     )
-    val_loader = None
-    if val_ds is not None and len(val_ds) > 0:
-        val_loader = DataLoader(
-            val_ds,
-            batch_size=args.batch_size,
-            shuffle=False,
-            num_workers=args.num_workers,
-            collate_fn=collate_fn,
-            pin_memory=(device.type != 'cpu')
-        )
 
     model = build_model(num_classes=num_classes, pretrained=True)
     model.to(device)
@@ -136,7 +123,6 @@ def main():
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=max(args.epochs // 3, 1), gamma=0.1)
 
     start_epoch = 1
-    best_loss = float('inf')
     if args.resume and args.resume.is_file():
         ckpt = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(ckpt['model'])
@@ -155,7 +141,6 @@ def main():
             'momentum': args.momentum,
             'weight_decay': args.weight_decay,
             'num_workers': args.num_workers,
-            'val_split': args.val_split,
             'limit': args.limit,
             'num_classes': num_classes
         }, f, indent=2)
@@ -163,28 +148,7 @@ def main():
     for epoch in range(start_epoch, args.epochs + 1):
         train_one_epoch(model, optimizer, train_loader, device, epoch, log_interval=args.log_interval)
         lr_scheduler.step()
-        # Simple val pass to track loss (optional)
-        val_loss = None
-        if val_loader is not None:
-            model.eval()
-            vloss = 0.0
-            with torch.no_grad():
-                for images, targets in val_loader:
-                    images = [img.to(device) for img in images]
-                    targets = [{k: v.to(device) if torch.is_tensor(v) else v for k, v in t.items()} for t in targets]
-                    loss_dict = model(images, targets)
-                    losses = sum(loss for loss in loss_dict.values())
-                    vloss += float(losses.detach().cpu())
-            val_loss = vloss / max(len(val_loader), 1)
-            print(f"Val loss: {val_loss:.4f}")
-
         ckpt_path = save_checkpoint(model, optimizer, epoch, args.output_dir, best=False)
-        # Track best by val loss if available, else training loss trend
-        metric = val_loss if val_loss is not None else 0.0
-        if val_loss is not None and val_loss < best_loss:
-            best_loss = val_loss
-            best_path = save_checkpoint(model, optimizer, epoch, args.output_dir, best=True)
-            print(f"New best checkpoint: {best_path}")
         print(f"Saved checkpoint: {ckpt_path}")
 
     print("Training complete.")

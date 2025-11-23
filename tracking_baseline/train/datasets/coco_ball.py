@@ -1,6 +1,6 @@
 """Minimal COCO-style dataset loader for player/ball detection.
-Loads data/coco_pseudo.json (merged) and returns images + target dicts
-compatible with torchvision detection models.
+Loads COCO-format annotations (coco_train.json or coco_test.json) and returns
+images + target dicts compatible with torchvision detection models.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -47,15 +47,9 @@ class CocoBallDataset(torch.utils.data.Dataset):
         # Our file_name currently 'seq/img1/000123.jpg' or just '000123.jpg'
         parts = rel_file.split('/')
         if len(parts) > 1:
-            seq = parts[0]
-            img_rel = '/'.join(parts[1:])
-            img_path = self.root / 'tracking-2023' / 'train' / seq / 'img1' / parts[-1]
-            if not img_path.is_file():
-                # Try test split
-                test_path = self.root / 'tracking-2023' / 'test' / seq / 'img1' / parts[-1]
-                img_path = test_path if test_path.is_file() else img_path
+            # Use root as the base directory for tracking-2023
+            img_path = self.root / rel_file
         else:
-            # fallback just images relative
             img_path = self.root / rel_file
         if not img_path.is_file():
             raise FileNotFoundError(f"Image not found: {img_path}")

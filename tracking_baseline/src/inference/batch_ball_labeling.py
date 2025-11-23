@@ -1,7 +1,8 @@
 """Batch pseudo-labeling of ball across tracking-2023 sequences.
 Generates:
   - ball_tracks.json: {sequence_id: [ball_tid_1, ball_tid_2, ...] or []}
-  - coco_pseudo.json: COCO-style merged annotations (player vs ball) across sequences
+  - coco_train.json: COCO-style annotations for training sequences only
+  - coco_test.json: COCO-style annotations for test sequences only
 Heuristic: return ALL tracks that are small, square, and present (handles multiple balls per sequence).
 Refine weights and threshold to our liking.
 """
@@ -112,19 +113,26 @@ def load_overrides():
                 pass
         return {}
 
-def build_coco(seqs_ball_map, seqs_tracks):
+def build_coco(seqs_ball_map, seqs_tracks, seqs_split_map, target_split=None):
+    """Build COCO dataset. If target_split is specified, only include sequences from that split."""
     images = []
     annotations = []
     categories = [{"id":0,"name":"player"},{"id":1,"name":"ball"}]
     ann_id = 1
     for seq_id, tracks in seqs_tracks.items():
+        split = seqs_split_map.get(seq_id)
+        if split is None:
+            continue  # skip if not found
+        if target_split is not None and split != target_split:
+            continue  # skip if filtering by split
+        
         ball_tids = seqs_ball_map.get(seq_id, [])
         # Collect all frames -> images
         frame_seen = set()
         for tid, boxes in tracks.items():
             for fr,x,y,w,h in boxes:
                 if fr not in frame_seen:
-                    images.append({"id": f"{seq_id}_{fr}", "file_name": f"{seq_id}/img1/{fr:06d}.jpg"})
+                    images.append({"id": f"{seq_id}_{fr}", "file_name": f"tracking-2023/{split}/{seq_id}/img1/{fr:06d}.jpg"})
                     frame_seen.add(fr)
                 cat_id = 1 if (tid in ball_tids) else 0
                 annotations.append({
@@ -143,6 +151,8 @@ def main():
     overrides = load_overrides()
     seqs_tracks = {}
     ball_map = {}
+    seqs_split_map = {}  # Track which split each sequence belongs to
+    
     for split in SPLITS:
         split_root = ROOT / split
         if not split_root.exists():
@@ -167,13 +177,22 @@ def main():
                 print(f"[{split}] {seq_name}: ball_tids={ball_tids}")
             seqs_tracks[seq_name] = tracks
             ball_map[seq_name] = ball_tids
+            seqs_split_map[seq_name] = split
+    
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     with open(OUT_DIR / "ball_tracks.json", 'w') as f:
         json.dump(ball_map, f)
-    coco = build_coco(ball_map, seqs_tracks)
-    with open(OUT_DIR / "coco_pseudo.json", 'w') as f:
-        json.dump(coco, f)
-    print("Saved ball_tracks.json and coco_pseudo.json")
+    
+    # Generate separate COCO files for train and test
+    coco_train = build_coco(ball_map, seqs_tracks, seqs_split_map, target_split="train")
+    with open(OUT_DIR / "coco_train.json", 'w') as f:
+        json.dump(coco_train, f)
+    
+    coco_test = build_coco(ball_map, seqs_tracks, seqs_split_map, target_split="test")
+    with open(OUT_DIR / "coco_test.json", 'w') as f:
+        json.dump(coco_test, f)
+    
+    print(f"Saved ball_tracks.json, coco_train.json ({len(coco_train['images'])} images), and coco_test.json ({len(coco_test['images'])} images)")
 
 if __name__ == "__main__":
     main()
