@@ -1,10 +1,22 @@
 """Batch pseudo-labeling of ball across tracking-2023 sequences.
+
+This script automatically identifies which tracked objects are balls (vs players) using
+heuristics based on size, shape, and movement patterns.
+
+IMPORTANT: Must be run from project root directory (where README.md is located).
+The script uses Path.cwd() to locate data/tracking-2023/
+
 Generates:
   - ball_tracks.json: {sequence_id: [ball_tid_1, ball_tid_2, ...] or []}
-  - coco_train.json: COCO-style annotations for training sequences only
-  - coco_test.json: COCO-style annotations for test sequences only
-Heuristic: return ALL tracks that are small, square, and present (handles multiple balls per sequence).
-Refine weights and threshold to our liking.
+  - coco_train.json: COCO-style annotations for training sequences only (42,000 images)
+  - coco_test.json: COCO-style annotations for test sequences only (36,750 images)
+
+Heuristic: Identifies up to 3 ball tracks per sequence that are:
+  - Small (median area < 30th percentile AND < 2000 px²)
+  - Round (aspect ratio close to 1.0, roundness > 0.7)
+  - Consistently present (not just 1-2 frame detections)
+
+Manual overrides can be specified in tracking_baseline/data/overrides.json
 """
 from pathlib import Path
 import json, statistics
