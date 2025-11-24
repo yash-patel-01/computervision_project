@@ -36,7 +36,7 @@ def default_transforms(img, target):
     return F.to_tensor(img), target
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, log_interval=50):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, log_interval=50, save_interval=0, out_dir: Path | None = None):
     model.train()
     loss_sum = 0.0
     t0 = time.time()
@@ -55,9 +55,20 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, log_interval=5
         loss_sum += loss_value
         if (i + 1) % log_interval == 0:
             avg = loss_sum / (i + 1)
-            print(f"Epoch {epoch} [{i+1}/{len(data_loader)}] loss={loss_value:.4f} avg={avg:.4f}")
+            print(f"Epoch {epoch} [{i+1}/{len(data_loader)}] loss={loss_value:.4f} avg={avg:.4f}", flush=True)
+
+        # Mid-epoch checkpointing
+        if save_interval > 0 and out_dir is not None and (i + 1) % save_interval == 0:
+            ckpt_path = out_dir / f"model_epoch{epoch}_step{i+1}.pth"
+            torch.save({
+                'epoch': epoch,
+                'step': i + 1,
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+            }, ckpt_path)
+            print(f"Saved mid-epoch checkpoint: {ckpt_path}", flush=True)
     dt = time.time() - t0
-    print(f"Epoch {epoch} done in {dt:.1f}s; avg loss {loss_sum/len(data_loader):.4f}")
+    print(f"Epoch {epoch} done in {dt:.1f}s; avg loss {loss_sum/len(data_loader):.4f}", flush=True)
 
 
 def save_checkpoint(model, optimizer, epoch, out_dir: Path, best: bool = False):
@@ -87,10 +98,11 @@ def main():
     p.add_argument('--output-dir', type=Path, default=(cwd / 'runs' / 'frcnn').resolve())
     p.add_argument('--resume', type=Path, default=None)
     p.add_argument('--log-interval', type=int, default=50)
+    p.add_argument('--save-interval', type=int, default=0, help='Save mid-epoch checkpoint every N steps (0=disable)')
 
     args = p.parse_args()
     device = get_device()
-    print(f"Using device: {device}")
+    print(f"Using device: {device}", flush=True)
 
     coco_json = args.coco_json or (args.data_root / 'coco_train.json')
     if not coco_json.is_file():
@@ -101,10 +113,10 @@ def main():
         coco_data = json.load(f)
     max_cat_id = max(cat['id'] for cat in coco_data['categories'])
     num_classes = max_cat_id + 1  # +1 for background as class 0
-    print(f"Detected {len(coco_data['categories'])} categories; setting num_classes={num_classes}")
+    print(f"Detected {len(coco_data['categories'])} categories; setting num_classes={num_classes}", flush=True)
 
     train_ds = CocoBallDataset(args.data_root, coco_json, transforms=default_transforms, limit=args.limit)
-    print(f"Training on {len(train_ds)} images from train set")
+    print(f"Training on {len(train_ds)} images from train set", flush=True)
 
     train_loader = DataLoader(
         train_ds,
@@ -146,12 +158,21 @@ def main():
         }, f, indent=2)
 
     for epoch in range(start_epoch, args.epochs + 1):
-        train_one_epoch(model, optimizer, train_loader, device, epoch, log_interval=args.log_interval)
+        train_one_epoch(
+            model,
+            optimizer,
+            train_loader,
+            device,
+            epoch,
+            log_interval=args.log_interval,
+            save_interval=args.save_interval,
+            out_dir=args.output_dir
+        )
         lr_scheduler.step()
         ckpt_path = save_checkpoint(model, optimizer, epoch, args.output_dir, best=False)
-        print(f"Saved checkpoint: {ckpt_path}")
+        print(f"Saved checkpoint: {ckpt_path}", flush=True)
 
-    print("Training complete.")
+    print("Training complete.", flush=True)
 
 
 if __name__ == '__main__':
