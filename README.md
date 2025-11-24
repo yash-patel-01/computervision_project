@@ -1,23 +1,23 @@
-# Football Player & Ball Detection Project
+# Football Player & Ball Detection
 
-Deep Learning for Computer Vision project: Train a Faster R-CNN model to detect players and balls in football video clips.
+This project trains a Faster R-CNN model to detect players and balls in football video sequences from the SoccerNet dataset.
 
-## Project Goal
+## Overview
 
-Detect and classify objects in football clips:
+The main objective is detecting and classifying two object types in football footage:
 - **Players** (class 0)
 - **Ball** (class 1)
 
-**Challenge:** Original dataset labels all objects with the same class. We use a heuristic algorithm to automatically identify ball tracks based on size, shape, and movement patterns.
+The original SoccerNet tracking dataset provides bounding boxes but doesn't distinguish between players and balls—everything shares one generic class. To address this, I implemented a heuristic-based algorithm that automatically identifies which tracks correspond to the ball based on size (small), shape (round), and consistency across frames.
 
 ## Dataset
 
-SoccerNet tracking-2023 dataset:
-- **train/**: 58 sequences, 42,000 images with bounding boxes
-- **test/**: 49 sequences, 36,750 images with bounding boxes  
-- **challenge2023/**: Unannotated clips for inference
+Using SoccerNet tracking-2023:
+- **Training set**: 58 sequences, ~42,000 annotated frames
+- **Test set**: 49 sequences, ~36,750 annotated frames  
+- **Challenge set**: Additional unannotated sequences
 
-Download via SoccerNet Downloader:
+The dataset can be downloaded using the SoccerNet API:
 ```python
 from SoccerNet.Downloader import SoccerNetDownloader
 downloader = SoccerNetDownloader(LocalDirectory="data")
@@ -25,40 +25,43 @@ downloader.password = "s0cc3rn3t"
 downloader.downloadDataTask(task="tracking-2023", split=["train", "test", "challenge"])
 ```
 
-## Workflow
+## Pipeline
 
-### Step 1: Generate Ball Labels
+### 1. Ball Labeling
+
+The first step processes the tracking annotations to identify which tracks represent the ball:
 
 ```bash
 python3 tracking_baseline/src/inference/batch_ball_labeling.py
 ```
 
-Identifies ball tracks using heuristics (size, roundness, presence). Generates:
-- `data/ball_tracks.json`: Ball track IDs per sequence
-- `data/coco_train.json`: Training annotations (42K images, 103MB)
-- `data/coco_test.json`: Test annotations (36K images, 82MB)
+This generates COCO-format annotations with proper class labels:
+- `data/ball_tracks.json` - Identified ball track IDs per sequence
+- `data/coco_train.json` - Training annotations (~42K images)
+- `data/coco_test.json` - Test annotations (~37K images)
 
-Manual overrides: `tracking_baseline/data/overrides.json`
+The heuristic looks for small, round, consistently-present objects. You can manually correct misidentifications by editing `tracking_baseline/data/overrides.json`.
 
-### Step 2: Train Model
+### 2. Model Training
+
+Train the Faster R-CNN detector on the labeled data:
 
 ```bash
 cd tracking_baseline/train
 python3 train_frcnn.py --epochs 6 --batch-size 4 --data-root ../../data
 ```
 
-Trains Faster R-CNN on 42K training images. Outputs checkpoints to `runs/frcnn/model_epoch{N}.pth`. 
+Training takes several hours on GPU and saves checkpoints to `runs/frcnn/`. Key parameters can be adjusted via command-line flags (`--epochs`, `--batch-size`, `--lr`).
 
-Options: `--epochs`, `--batch-size`, `--lr`, `--coco-json`, `--output-dir`
+### 3. Evaluation
 
-### Step 3: Evaluate
+Measure detection performance on the test set:
 
 ```bash
-cd tracking_baseline/train
 python3 eval_coco.py --checkpoint runs/frcnn/model_epoch6.pth --data-root ../../data
 ```
 
-Computes COCO metrics (AP, AP50, AP75, AP_small) on 36K test images. Results saved to `runs/frcnn/eval_metrics.json`.
+This computes standard COCO metrics (AP, AP50, AP75, etc.) and saves results to `runs/frcnn/eval_metrics.json`. The AP_small metric is particularly important since it specifically measures ball detection accuracy.
 
 ## Project Structure
 
@@ -97,20 +100,18 @@ Code/
 
 ```
 
-## Notes
+## Additional Files
 
-- `exploration.ipynb`: Data visualization and ball identification examples
-- See `tracking_baseline/README.md` for tracking algorithm details
-- Generated files excluded from git: datasets, annotations, checkpoints, training outputs
+- `exploration.ipynb` - Data exploration and visualization notebook
+- `tracking_baseline/README.md` - More detailed documentation
+- `.gitignore` - Excludes large files (datasets, checkpoints) from version control
 
-## Installation
+## Setup
 
+Install dependencies:
 ```bash
 pip install -r tracking_baseline/requirements.txt
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121  # For GPU
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121  # CUDA 12.1
 ```
 
-## Requirements
-
-- Python 3.10+, PyTorch 2.5+, CUDA support recommended
-- ~190GB disk space for dataset
+Requirements: Python 3.10+, PyTorch 2.5+, ~190GB disk space for the full dataset. GPU strongly recommended for training.

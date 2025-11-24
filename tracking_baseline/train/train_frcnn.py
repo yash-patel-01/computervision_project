@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import time
+import datetime
 import json
 
 import torch
@@ -36,10 +37,11 @@ def default_transforms(img, target):
     return F.to_tensor(img), target
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, log_interval=50, save_interval=0, out_dir: Path | None = None):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, log_interval=50):
     model.train()
     loss_sum = 0.0
     t0 = time.time()
+    last_log_time = t0
     for i, (images, targets) in enumerate(data_loader):
         images = [img.to(device) for img in images]
         targets = [{k: v.to(device) if torch.is_tensor(v) else v for k, v in t.items()} for t in targets]
@@ -53,20 +55,22 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, log_interval=5
         optimizer.step()
 
         loss_sum += loss_value
-        if (i + 1) % log_interval == 0:
+        # Log first few batches and then periodically
+        if (i + 1) <= 10 or (i + 1) % log_interval == 0:
             avg = loss_sum / (i + 1)
-            print(f"Epoch {epoch} [{i+1}/{len(data_loader)}] loss={loss_value:.4f} avg={avg:.4f}", flush=True)
-
-        # Mid-epoch checkpointing
-        if save_interval > 0 and out_dir is not None and (i + 1) % save_interval == 0:
-            ckpt_path = out_dir / f"model_epoch{epoch}_step{i+1}.pth"
-            torch.save({
-                'epoch': epoch,
-                'step': i + 1,
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-            }, ckpt_path)
-            print(f"Saved mid-epoch checkpoint: {ckpt_path}", flush=True)
+            dt_since_log = time.time() - last_log_time
+            batches_done = i + 1
+            batches_total = len(data_loader)
+            speed = dt_since_log / max((log_interval if batches_done > 10 else batches_done), 1)
+            remaining_batches = batches_total - batches_done
+            est_remaining = remaining_batches * speed
+            eta = datetime.datetime.utcnow() + datetime.timedelta(seconds=est_remaining)
+            print(
+                f"Epoch {epoch} [{batches_done}/{batches_total}] loss={loss_value:.4f} avg={avg:.4f} "
+                f"ETA ~{int(est_remaining//60)}m {int(est_remaining%60)}s (ETA UTC {eta.strftime('%H:%M:%S')})",
+                flush=True
+            )
+            last_log_time = time.time()
     dt = time.time() - t0
     print(f"Epoch {epoch} done in {dt:.1f}s; avg loss {loss_sum/len(data_loader):.4f}", flush=True)
 
@@ -98,7 +102,6 @@ def main():
     p.add_argument('--output-dir', type=Path, default=(cwd / 'runs' / 'frcnn').resolve())
     p.add_argument('--resume', type=Path, default=None)
     p.add_argument('--log-interval', type=int, default=50)
-    p.add_argument('--save-interval', type=int, default=0, help='Save mid-epoch checkpoint every N steps (0=disable)')
 
     args = p.parse_args()
     device = get_device()
@@ -164,9 +167,7 @@ def main():
             train_loader,
             device,
             epoch,
-            log_interval=args.log_interval,
-            save_interval=args.save_interval,
-            out_dir=args.output_dir
+            log_interval=args.log_interval
         )
         lr_scheduler.step()
         ckpt_path = save_checkpoint(model, optimizer, epoch, args.output_dir, best=False)

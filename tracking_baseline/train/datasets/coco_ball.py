@@ -62,6 +62,9 @@ class CocoBallDataset(torch.utils.data.Dataset):
         track_ids = []
         for a in anns:
             x,y,w,h = a['bbox']
+            # Skip invalid boxes with zero or negative width/height
+            if w <= 0 or h <= 0:
+                continue
             boxes.append([x, y, x+w, y+h])
             labels.append(a['category_id'])
             areas.append(a['area'])

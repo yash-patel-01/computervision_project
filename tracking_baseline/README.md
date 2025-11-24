@@ -1,6 +1,6 @@
 # Football Player & Ball Tracking — Baseline
 
-A compact, course-aligned tracking-by-detection baseline for short football clips.
+A tracking-by-detection baseline for football clips using Faster R-CNN detection and classical tracking algorithms.
 
 Pipeline
 - Detector (e.g., DETR) for players and ball
@@ -9,12 +9,7 @@ Pipeline
 - Data association: blended cost (1 − IoU) + cosine distance; Hungarian matching (greedy fallback)
 - Tracks update: matched → KF update; unmatched detections → new tracks; stale tracks → removed
 
-Why it matches the lectures
-- CNN/Transformers for detection (DETR) and multi-scale for small objects (ball)
-- Contrastive/triplet ideas for identity embeddings
-- Sequence modeling simplified via classical temporal filtering (Kalman) + optional light GRU later
-
-What’s included
+What's included
 - src/utils/boxes.py — IoU and box helpers
 - src/tracking/kalman.py — lightweight Kalman filter (DeepSORT-style state: cx, cy, a, h + velocities)
 - src/tracking/association.py — IoU/cosine distances and assignment (Hungarian or greedy)
@@ -44,12 +39,12 @@ Configuration
   - max_age, n_init, max_cosine_dist, min_iou
   - class handling (ball vs player)
 
-Next steps (suggested)
-- Fine-tune DETR at higher resolution; monitor AP_small for the ball
-- If ID switches are high, train a small contrastive re-ID head and blend its embeddings
-- Optional: add a tiny GRU on last K observations per track to stabilize re-ID
+Potential improvements
+- Train detector at higher resolution to improve ball detection (AP_small)
+- Add re-identification head with contrastive learning to reduce ID switches
+- Experiment with temporal models (GRU) for more stable embeddings
 
-Metrics to report
-- Detection: mAP@[.5:.95], AP_small (ball)
+Evaluation metrics
+- Detection: mAP@[.5:.95], AP_small (important for ball detection)
 - Tracking: IDF1, HOTA, MOTA, ID-switches
 
