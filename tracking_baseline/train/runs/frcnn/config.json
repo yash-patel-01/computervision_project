@@ -1,0 +1,12 @@
+{
+  "data_root": "../../data",
+  "coco_json": "../../data/coco_train.json",
+  "epochs": 6,
+  "batch_size": 4,
+  "lr": 0.005,
+  "momentum": 0.9,
+  "weight_decay": 0.0005,
+  "num_workers": 4,
+  "limit": null,
+  "num_classes": 2
+}

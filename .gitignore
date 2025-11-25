@@ -1,13 +1,14 @@
 # Data directories
+# Large dataset directories
 data/jersey-2023/
 data/tracking-2023/
-data/per_seq/
+
+# Large COCO annotation files (too big for GitHub: 103MB + 82MB)
 data/coco_train.json
 data/coco_test.json
-data/ball_tracks.json
 
-# But keep the data directory structure visible
-!data/.gitkeep
+# Keep small ball labeling file (4KB - will be committed)
+# data/ball_tracks.json
 
 # Python
 __pycache__/
@@ -54,12 +55,19 @@ ENV/
 .LSOverride
 
 # Model checkpoints and training outputs
-tracking_baseline/train/runs/
+# Model checkpoint files (large binary files)
 *.pth
 *.pt
 *.h5
 *.ckpt
 
-# Logs
-*.log
-logs/
+# Keep training results and metrics (small JSON files will be committed)
+# tracking_baseline/train/runs/frcnn/eval_metrics.json
+# tracking_baseline/train/runs/frcnn/config.json
+# tracking_baseline/train/runs/frcnn/heartbeat.json
+
+# Keep training logs (will be committed)
+# *.log
+
+# Jupyter notebook (keep the notebook file, commit it)
+# model_evaluation.ipynb

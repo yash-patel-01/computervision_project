@@ -1,0 +1,54 @@
+nohup: ignoring input
+/home/Yash/Code/tracking_baseline/train/eval_coco.py:34: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(checkpoint, map_location='cpu')
+Progress: 2000/36750 images (  5.4%) | avg 118.5 ms/img | ETA ~  68.7 min
+Progress: 4000/36750 images ( 10.9%) | avg 119.9 ms/img | ETA ~  65.4 min
+Progress: 6000/36750 images ( 16.3%) | avg 120.4 ms/img | ETA ~  61.7 min
+Progress: 8000/36750 images ( 21.8%) | avg 120.8 ms/img | ETA ~  57.9 min
+Progress: 10000/36750 images ( 27.2%) | avg 121.0 ms/img | ETA ~  53.9 min
+Progress: 12000/36750 images ( 32.7%) | avg 121.1 ms/img | ETA ~  49.9 min
+Progress: 14000/36750 images ( 38.1%) | avg 121.2 ms/img | ETA ~  45.9 min
+Progress: 16000/36750 images ( 43.5%) | avg 121.3 ms/img | ETA ~  41.9 min
+Progress: 18000/36750 images ( 49.0%) | avg 121.3 ms/img | ETA ~  37.9 min
+Progress: 20000/36750 images ( 54.4%) | avg 121.4 ms/img | ETA ~  33.9 min
+Progress: 22000/36750 images ( 59.9%) | avg 121.4 ms/img | ETA ~  29.8 min
+Progress: 24000/36750 images ( 65.3%) | avg 121.4 ms/img | ETA ~  25.8 min
+Progress: 26000/36750 images ( 70.7%) | avg 121.4 ms/img | ETA ~  21.7 min
+Progress: 28000/36750 images ( 76.2%) | avg 121.4 ms/img | ETA ~  17.7 min
+Progress: 30000/36750 images ( 81.6%) | avg 121.4 ms/img | ETA ~  13.7 min
+Progress: 32000/36750 images ( 87.1%) | avg 121.4 ms/img | ETA ~   9.6 min
+Progress: 34000/36750 images ( 92.5%) | avg 121.4 ms/img | ETA ~   5.6 min
+Progress: 36000/36750 images ( 98.0%) | avg 121.5 ms/img | ETA ~   1.5 min
+loading annotations into memory...
+Done (t=2.26s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=1.36s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=23.19s).
+Accumulating evaluation results...
+DONE (t=6.78s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.084
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.226
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.042
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.085
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.030
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.128
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.154
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.156
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.157
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.075
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.000
+Metrics:
+  AP: 0.0843
+  AP50: 0.2263
+  AP75: 0.0420
+  AP_small: 0.0846
+  AP_medium: 0.0301
+  AP_large: 0.0000
+Saved metrics to /home/Yash/Code/tracking_baseline/train/runs/frcnn/eval_metrics.json
