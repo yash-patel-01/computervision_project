@@ -58,8 +58,10 @@ Training takes several hours on GPU and saves checkpoints to `runs/frcnn/`. Key 
 Measure detection performance on the test set:
 
 ```bash
-python3 eval_coco.py --checkpoint runs/frcnn/model_epoch6.pth --data-root ../../data
+python3 eval_coco.py --checkpoint runs/frcnn/model_epoch6.pth --data-root ../../data --progress-interval 500
 ```
+
+Adjust `--progress-interval` (images per progress print) or omit it entirely to disable progress output.
 
 This computes standard COCO metrics (AP, AP50, AP75, etc.) and saves results to `runs/frcnn/eval_metrics.json`. The AP_small metric is particularly important since it specifically measures ball detection accuracy.
 

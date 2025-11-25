@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import json
+import time
 
 import torch
 import torchvision
@@ -35,15 +36,24 @@ def build_model(num_classes: int, checkpoint: Path):
     return model
 
 
-def run_inference(model, data_loader, device):
+def run_inference(model, data_loader, device, progress_interval: int | None = None):
+    """Run model and return COCO-format detections.
+
+    If progress_interval is provided, prints progress & ETA every N images.
+    """
     model.eval()
     results = []
+    processed = 0
+    total_images = len(data_loader.dataset)
+    t_start = time.time()
+
     with torch.no_grad():
         for images, targets in data_loader:
             images = [img.to(device) for img in images]
             outputs = model(images)
             for target, output in zip(targets, outputs):
-                image_id = int(target['image_id'])
+                # Use orig_image_id which preserves the string ID from COCO JSON
+                image_id = target['orig_image_id']
                 boxes = output['boxes'].cpu().numpy()
                 scores = output['scores'].cpu().numpy()
                 labels = output['labels'].cpu().numpy()
@@ -57,6 +67,15 @@ def run_inference(model, data_loader, device):
                         'bbox': [float(x1), float(y1), float(w), float(h)],
                         'score': float(score)
                     })
+            processed += len(images)
+            if progress_interval and processed % progress_interval < len(images):
+                elapsed = time.time() - t_start
+                per_image = elapsed / processed if processed else 0.0
+                remaining = total_images - processed
+                eta_sec = remaining * per_image
+                eta_min = eta_sec / 60.0
+                pct = (processed / total_images) * 100.0
+                print(f"Progress: {processed}/{total_images} images ({pct:5.1f}%) | avg {per_image*1000:.1f} ms/img | ETA ~ {eta_min:5.1f} min", flush=True)
     return results
 
 
@@ -90,6 +109,7 @@ def main():
     a.add_argument('--num-workers', type=int, default=4)
     a.add_argument('--limit', type=int, default=None)
     a.add_argument('--output', type=Path, default=(cwd / 'runs' / 'frcnn' / 'eval_metrics.json').resolve())
+    a.add_argument('--progress-interval', type=int, default=500, help='Print progress every N images (set <=0 to disable)')
 
     args = a.parse_args()
     device = get_device()
@@ -108,7 +128,8 @@ def main():
     model = build_model(num_classes=num_classes, checkpoint=args.checkpoint)
     model.to(device)
 
-    detections = run_inference(model, loader, device)
+    progress_interval = args.progress_interval if args.progress_interval and args.progress_interval > 0 else None
+    detections = run_inference(model, loader, device, progress_interval=progress_interval)
     metrics = evaluate(coco_json, detections)
     print("Metrics:")
     for k, v in metrics.items():
