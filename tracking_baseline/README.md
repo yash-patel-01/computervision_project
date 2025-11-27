@@ -45,10 +45,12 @@ python3 train_yolo.py \
 ```
 
 Notes
-- Manual overrides are not expected anymore; adjust outputs directly if needed.
-- Tracking code (`src/tracking`, `src/utils`, configs) is currently a placeholder. If you plan tracking-by-detection, add those modules or remove references.
+- Manual overrides are not expected; the heuristic automatically identifies ball tracks. Adjust outputs directly if needed.
+- Pre-trained YOLOv8 model available at `train/runs/yolo/azure_full_v12/weights/best.pt` (AP: 33.9%, AP50: 59.9%)
+- See `model_evaluation.ipynb` for comprehensive performance comparison between FRCNN and YOLOv8
 
 Potential improvements
-- Optional CLI to cap or adjust the maximum number of ball tracks per sequence.
-- Per-class instance balancing during training if ball frequency is low.
+- Optional CLI to cap or adjust the maximum number of ball tracks per sequence
+- Per-class instance balancing during training if ball frequency is low
+- Fine-tune detection thresholds for specific use cases (precision vs recall trade-off)
 

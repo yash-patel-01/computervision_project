@@ -25,49 +25,123 @@ downloader.password = "s0cc3rn3t"
 downloader.downloadDataTask(task="tracking-2023", split=["train", "test", "challenge"])
 ```
 
-## Pipeline
+## Complete Pipeline (From Scratch)
 
-### 1. Ball Labeling
+Follow these steps in order to reproduce the entire project:
 
-The first step processes the tracking annotations to identify which tracks represent the ball:
+### Step 0: Setup Environment
 
 ```bash
-# Quick sanity run (limit sequences per split, choose output dir)
+# Install dependencies
+pip install -r tracking_baseline/requirements.txt
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121  # CUDA 12.1
+
+# Download SoccerNet dataset (~190GB, takes several hours)
+# See exploration.ipynb or use this Python snippet:
+```
+```python
+from SoccerNet.Downloader import SoccerNetDownloader
+downloader = SoccerNetDownloader(LocalDirectory="data")
+downloader.password = "s0cc3rn3t"
+downloader.downloadDataTask(task="tracking-2023", split=["train", "test", "challenge"])
+```
+
+### Step 1: Generate Ball Labels
+
+Process the tracking annotations to identify which tracks represent the ball using heuristics (size, shape, consistency):
+
+```bash
+# Quick sanity check (1 sequence per split)
 python3 tracking_baseline/batch_ball_labeling.py --limit-seqs 1 --output-dir data/tmp_check
 
-# Full run
+# Full run (all sequences)
 python3 tracking_baseline/batch_ball_labeling.py
 ```
 
-This generates COCO-format annotations with proper class labels:
+**Generates:**
 - `data/ball_tracks.json` - Identified ball track IDs per sequence
 - `data/coco_train.json` - Training annotations (~42K images)
 - `data/coco_test.json` - Test annotations (~37K images)
 
-The heuristic looks for small, round, consistently-present objects. Manual overrides are no longer required or expected; if you need to adjust results, edit the generated JSONs.
+### Step 2a: Train Faster R-CNN (Optional)
 
-### 2. Model Training
-
-Train the Faster R-CNN detector on the labeled data:
+Train the two-stage Faster R-CNN detector:
 
 ```bash
 cd tracking_baseline/train/runs/frcnn
 python3 train_frcnn.py --epochs 6 --batch-size 4 --data-root ../../../../data
 ```
 
-Training takes several hours on GPU and saves checkpoints to `runs/frcnn/`. Key parameters can be adjusted via command-line flags (`--epochs`, `--batch-size`, `--lr`).
+**Output:** Saves checkpoints and logs to `tracking_baseline/train/runs/frcnn/`
 
-### 3. Evaluation
-
-Measure detection performance on the test set:
+### Step 2b: Evaluate Faster R-CNN
 
 ```bash
-python3 eval_coco_frcnn.py --checkpoint model_epoch6.pth --data-root ../../../../data --progress-interval 500
+# From tracking_baseline/train/runs/frcnn/
+python3 eval_coco_frcnn.py --checkpoint model_epoch6.pth --data-root ../../../../data
 ```
 
-Adjust `--progress-interval` (images per progress print) or omit it entirely to disable progress output.
+**Output:** `eval_metrics_frcnn.json` with COCO metrics (AP, AP50, AP75, AP_small, etc.)
 
-This computes standard COCO metrics (AP, AP50, AP75, etc.) and saves results to `runs/frcnn/eval_metrics_frcnn.json`. The AP_small metric is particularly important since it specifically measures ball detection accuracy.
+### Step 3a: Convert to YOLO Format
+
+Convert COCO annotations to YOLO format with symlinked images:
+
+```bash
+cd tracking_baseline/train/runs/yolo
+python3 convert_coco_to_yolo.py \
+  --coco-train ../../../../data/coco_train.json \
+  --coco-val ../../../../data/coco_test.json \
+  --data-root ../../../../data \
+  --out-root ../../../../data/yolo_dataset_full_unique \
+  --workers 8 \
+  --relative-path
+```
+
+**Generates:**
+- `data/yolo_dataset_full_unique/labels/` - YOLO .txt files (~79K files)
+- `data/yolo_dataset_full_unique/images/` - Symlinks to original images
+- `data/yolo_dataset_full_unique/dataset.yaml` - Dataset configuration
+
+### Step 3b: Train YOLOv8 (Recommended)
+
+Train the single-stage YOLOv8 detector:
+
+```bash
+# From tracking_baseline/train/runs/yolo/
+python3 train_yolo.py \
+  --dataset-root ../../../../data/yolo_dataset_full_unique \
+  --model yolov8n.pt \
+  --epochs 50 \
+  --batch 16 \
+  --imgsz 832
+```
+
+**Output:** Training results saved to `tracking_baseline/train/runs/yolo/<run_name>/`
+- `weights/best.pt` - Best model checkpoint
+- `results.csv` - Training metrics per epoch
+
+**Note:** Pre-trained weights from our training are included at `azure_full_v12/weights/best.pt` (AP: 33.9%, AP50: 59.9%)
+
+### Step 3c: Evaluate YOLOv8
+
+```bash
+# From tracking_baseline/train/runs/yolo/
+python3 eval_coco_yolo.py \
+  --weights azure_full_v12/weights/best.pt \
+  --coco-test ../../../../data/coco_test.json \
+  --data-root ../../../../data \
+  --imgsz 832
+```
+
+**Output:** `eval_metrics_yolo.json` with COCO metrics
+
+### Step 4: Compare Models
+
+Review comprehensive evaluation and comparison in `model_evaluation.ipynb`:
+- FRCNN performance analysis
+- YOLOv8 performance analysis
+- Side-by-side comparison (YOLOv8 outperforms by ~4x on AP)
 
 ## Project Structure
 
@@ -107,29 +181,25 @@ Code/
 
 ```
 
+## Quick Start (Using Pre-trained Models)
+
+If you want to skip training and use our pre-trained models:
+
+1. Download the SoccerNet dataset (Step 0 above)
+2. Generate ball labels (Step 1 above)
+3. Use pre-trained YOLOv8 weights: `tracking_baseline/train/runs/yolo/azure_full_v12/weights/best.pt`
+4. Run evaluation or inference directly
+
 ## Additional Files
 
 - `exploration.ipynb` - Data exploration and visualization notebook
-- `tracking_baseline/README.md` - More detailed documentation
+- `model_evaluation.ipynb` - Comprehensive model comparison and results
+- `tracking_baseline/README.md` - Detailed baseline documentation
 - `.gitignore` - Excludes large files (datasets, checkpoints) from version control
 
-## Setup
+## Requirements
 
-Install dependencies:
-```bash
-pip install -r tracking_baseline/requirements.txt
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121  # CUDA 12.1
-```
-
-If YOLO dataset symlinks are broken or missing, recreate them:
-```bash
-python3 tracking_baseline/train/runs/yolo/convert_coco_to_yolo.py \
-  --coco-train data/coco_train.json \
-  --coco-val data/coco_test.json \
-  --data-root data \
-  --out-root data/yolo_dataset_full_unique \
-  --workers 8 \
-  --relative-path
-```
-
-Requirements: Python 3.10+, PyTorch 2.5+, ~190GB disk space for the full dataset. GPU strongly recommended for training.
+- Python 3.10+
+- PyTorch 2.5+ with CUDA support
+- ~190GB disk space for full dataset
+- GPU strongly recommended for training (CPU inference is feasible)
