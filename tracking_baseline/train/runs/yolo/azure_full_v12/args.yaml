@@ -1,20 +1,20 @@
 task: detect
 mode: train
 model: yolov8n.pt
-data: data/yolo_dataset_full_abs/dataset.yaml
-epochs: 1
+data: data/yolo_dataset_full_unique/dataset.yaml
+epochs: 50
 time: null
 patience: 0
-batch: 16
+batch: 32
 imgsz: 832
 save: true
-save_period: -1
-cache: disk
-device: mps
-workers: 2
+save_period: 5
+cache: ram
+device: '0'
+workers: 8
 project: tracking_baseline/train/runs/yolo
-name: full_ft_v1_probe
-exist_ok: true
+name: azure_full_v12
+exist_ok: false
 pretrained: true
 optimizer: auto
 verbose: true
@@ -23,10 +23,10 @@ deterministic: true
 single_cls: false
 rect: false
 cos_lr: false
-close_mosaic: 0
+close_mosaic: 10
 resume: false
 amp: true
-fraction: 0.02
+fraction: 1.0
 profile: false
 freeze: null
 multi_scale: false
@@ -74,7 +74,7 @@ lr0: 0.005
 lrf: 0.01
 momentum: 0.937
 weight_decay: 0.0005
-warmup_epochs: 1.0
+warmup_epochs: 2.0
 warmup_momentum: 0.8
 warmup_bias_lr: 0.1
 box: 7.5
@@ -103,5 +103,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /Users/yashpatel/Documents/Bocconi/Classes/Year 2/Semester 1/Deep Learning
-  for Computer Vision/Project/Code/tracking_baseline/train/runs/yolo/full_ft_v1_probe
+save_dir: /home/Yash/Code/tracking_baseline/train/runs/yolo/azure_full_v12

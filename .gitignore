@@ -2,23 +2,39 @@
 # Original raw datasets
 data/jersey-2023/
 data/tracking-2023/
-# Current working YOLO dataset (absolute symlinks)
+
+# Generated YOLO datasets (symlinks/copies)
 data/yolo_dataset_full_abs/
+data/yolo_dataset_full_unique/
+data/yolo_dataset_azure/
 
 # Large COCO annotation files (too big for GitHub)
 data/coco_train.json
 data/coco_test.json
+
 # Any nested image/label folders under data
 data/**/images/
 data/**/labels/
 
-# Ultralytics/YOLO run artifacts (large outputs)
-tracking_baseline/train/runs/yolo/**/weights/
-tracking_baseline/train/runs/yolo/**/results.csv
+# Ultralytics/YOLO training artifacts (large files)
+# Keep best.pt (6MB - critical trained weights), exclude other checkpoints
+tracking_baseline/train/runs/yolo/**/weights/last.pt
+tracking_baseline/train/runs/yolo/**/weights/epoch*.pt
 tracking_baseline/train/runs/yolo/**/labels.jpg
 tracking_baseline/train/runs/yolo/**/train_batch*.jpg
-# Local Ultralytics default project folder
+tracking_baseline/train/runs/yolo/**/val_batch*.jpg
+tracking_baseline/train/runs/yolo/**/*.png
+
+# Training logs (large)
+*.log
+
+# Local Ultralytics default project folder and artifacts
 YOLOv8/
+/runs/
+
+# Downloaded pretrained weights (not our trained models)
+yolov8n.pt
+yolo11n.pt
 
 # Keep small ball labeling file (4KB - will be committed)
 # data/ball_tracks.json
@@ -70,7 +86,7 @@ ENV/
 # Model checkpoints and training outputs
 # Model checkpoint files (large binary files)
 *.pth
-*.pt
+# *.pt excluded above with specific exceptions for best.pt
 *.h5
 *.ckpt
 

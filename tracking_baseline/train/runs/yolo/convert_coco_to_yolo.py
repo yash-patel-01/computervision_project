@@ -65,7 +65,11 @@ def convert_split(
         src_path = data_root / file_rel
         if not src_path.is_file():
             return False
-        dst_path = img_out_dir / Path(file_rel).name
+        # Ensure unique naming to avoid collisions across sequences sharing frame basenames (e.g., 000001.jpg)
+        # Flatten the relative path into a unique filename by replacing path separators.
+        # Example: tracking-2023/train/SNMOT-060/img1/000001.jpg -> tracking-2023_train_SNMOT-060_img1_000001.jpg
+        unique_name = file_rel.replace('/', '_')
+        dst_path = img_out_dir / unique_name
         ensure_symlink(src_path, dst_path)
         W = im.get('width')
         H = im.get('height')
@@ -87,7 +91,8 @@ def convert_split(
             h_n = h / H
             cls = cats[a['category_id']]
             yolo_lines.append(f"{cls} {cx_n:.6f} {cy_n:.6f} {w_n:.6f} {h_n:.6f}")
-        lbl_path = lbl_out_dir / (Path(file_rel).stem + '.txt')
+        # Match label file naming to the unique image naming (without extension)
+        lbl_path = lbl_out_dir / (Path(unique_name).stem + '.txt')
         with open(lbl_path, 'w') as f:
             f.write('\n'.join(yolo_lines))
         processed += 1
