@@ -1,50 +1,46 @@
-# Football Player & Ball Tracking — Baseline
+# Football Player & Ball Detection — Baseline
 
-A tracking-by-detection baseline for football clips using Faster R-CNN detection and classical tracking algorithms.
+This baseline covers detection and data preparation. Tracking modules referenced earlier are not included in this repository snapshot.
 
 Pipeline
-- Detector (e.g., DETR) for players and ball
-- Appearance embeddings per detection (use your provided vectors or learn a small re-ID head)
-- Motion model: constant-velocity Kalman filter on bounding boxes
-- Data association: blended cost (1 − IoU) + cosine distance; Hungarian matching (greedy fallback)
-- Tracks update: matched → KF update; unmatched detections → new tracks; stale tracks → removed
+- Heuristic ball identification from MOT GT (supports multiple ball tracks per sequence).
+- COCO-style dataset generation for train/test with categories: `player` (0), `ball` (1).
+- Faster R-CNN training on generated COCO; COCO evaluation of checkpoints.
 
-What's included
-- src/utils/boxes.py — IoU and box helpers
-- src/tracking/kalman.py — lightweight Kalman filter (DeepSORT-style state: cx, cy, a, h + velocities)
-- src/tracking/association.py — IoU/cosine distances and assignment (Hungarian or greedy)
-- src/tracking/tracker.py — DeepSORT-like tracker that consumes boxes + embeddings
-- src/inference/run_tracking.py — run tracker on precomputed detections to produce tracks
-- configs/tracker.yaml — knobs for costs, thresholds, and lifecycle
-- tests/test_iou.py — tiny sanity test
+What’s included
+- `src/inference/batch_ball_labeling.py` — Generate `ball_tracks.json`, `coco_train.json`, `coco_test.json`.
+- `train/datasets/coco_ball.py` — Minimal COCO loader for torchvision detection models.
+- `train/train_frcnn.py` — Train Faster R-CNN (2 classes + background).
+- `train/eval_coco.py` — Evaluate FRCNN checkpoints with `pycocotools` (AP, AP50, AP75, AP_small, …).
+- `train/runs/yolo/convert_coco_to_yolo.py` — Convert COCO annotations to YOLO format with symlinked images.
+- `train/runs/yolo/train_yolo_ultra.py` — Train YOLOv8 using Ultralytics native training on YOLO dataset.
+- `train/runs/yolo/eval_coco_yolo.py` — Evaluate YOLOv8 checkpoints with COCO metrics.
 
-Inputs/Assumptions
-- Detections per frame: bbox in xywh (top-left, width, height), class_id in {0: player, 1: ball}, embedding vector (list[float])
-- If you don’t have embeddings yet, pass None and rely more on IoU costs
+Quick start
+```bash
+# From project root
+python3 tracking_baseline/src/inference/batch_ball_labeling.py --limit-seqs 1 --output-dir data/tmp_check
+python3 tracking_baseline/src/inference/batch_ball_labeling.py  # full run
 
-Quick start (after you have detections)
-1) Put detections into a JSON file with this shape:
-   {
-     "frames": [
-       {"frame_id": 0, "detections": [{"bbox": [x, y, w, h], "class_id": 0, "embedding": [..]}]},
-       {"frame_id": 1, "detections": [...]},
-       ...
-     ]
-   }
-2) Run the tracker to produce tracks.json (IDs + boxes per frame).
+# FRCNN (under tracking_baseline/train)
+python3 tracking_baseline/train/train_frcnn.py --dry-run --limit 8
+# YOLO (under tracking_baseline/train/runs/yolo)
+# First, generate YOLO dataset from COCO
+python3 tracking_baseline/train/runs/yolo/convert_coco_to_yolo.py \
+  --data-root data --out-root data/yolo_dataset_full_abs \
+  --workers 8 --assume-width 1920 --assume-height 1080
 
-Configuration
-- configs/tracker.yaml controls:
-  - appearance_weight, iou_weight
-  - max_age, n_init, max_cosine_dist, min_iou
-  - class handling (ball vs player)
+# Then train YOLOv8
+python3 tracking_baseline/train/runs/yolo/train_yolo_ultra.py \
+  --dataset-root data/yolo_dataset_full_abs --model yolov8n.pt \
+  --epochs 50 --batch 16 --imgsz 832 --lr0 0.005
+```
+
+Notes
+- Manual overrides are not expected anymore; adjust outputs directly if needed.
+- Tracking code (`src/tracking`, `src/utils`, configs) is currently a placeholder. If you plan tracking-by-detection, add those modules or remove references.
 
 Potential improvements
-- Train detector at higher resolution to improve ball detection (AP_small)
-- Add re-identification head with contrastive learning to reduce ID switches
-- Experiment with temporal models (GRU) for more stable embeddings
-
-Evaluation metrics
-- Detection: mAP@[.5:.95], AP_small (important for ball detection)
-- Tracking: IDF1, HOTA, MOTA, ID-switches
+- Optional CLI to cap or adjust the maximum number of ball tracks per sequence.
+- Per-class instance balancing during training if ball frequency is low.
 

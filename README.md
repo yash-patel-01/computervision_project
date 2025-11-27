@@ -8,7 +8,7 @@ The main objective is detecting and classifying two object types in football foo
 - **Players** (class 0)
 - **Ball** (class 1)
 
-The original SoccerNet tracking dataset provides bounding boxes but doesn't distinguish between players and balls—everything shares one generic class. To address this, I implemented a heuristic-based algorithm that automatically identifies which tracks correspond to the ball based on size (small), shape (round), and consistency across frames.
+The original SoccerNet tracking dataset provides bounding boxes but doesn't distinguish between players and balls—everything shares one generic class. To address this, I implemented a heuristic-based algorithm that automatically identifies which tracks correspond to the ball based on size (small), shape (round), and consistency across frames. Note: multiple ball tracks can be identified in a sequence when the heuristic finds distinct small, round objects; the pipeline supports this.
 
 ## Dataset
 
@@ -32,6 +32,10 @@ downloader.downloadDataTask(task="tracking-2023", split=["train", "test", "chall
 The first step processes the tracking annotations to identify which tracks represent the ball:
 
 ```bash
+# Quick sanity run (limit sequences per split, choose output dir)
+python3 tracking_baseline/src/inference/batch_ball_labeling.py --limit-seqs 1 --output-dir data/tmp_check
+
+# Full run
 python3 tracking_baseline/src/inference/batch_ball_labeling.py
 ```
 
@@ -40,7 +44,7 @@ This generates COCO-format annotations with proper class labels:
 - `data/coco_train.json` - Training annotations (~42K images)
 - `data/coco_test.json` - Test annotations (~37K images)
 
-The heuristic looks for small, round, consistently-present objects. You can manually correct misidentifications by editing `tracking_baseline/data/overrides.json`.
+The heuristic looks for small, round, consistently-present objects. Manual overrides are no longer required or expected; if you need to adjust results, edit the generated JSONs.
 
 ### 2. Model Training
 
@@ -83,20 +87,21 @@ Code/
 └── tracking_baseline/                  # Training and inference code
     ├── README.md                       # Detailed baseline documentation
     ├── requirements.txt                # Python dependencies
-    ├── configs/
-    │   └── tracker.yaml                # Tracker configuration
-    ├── data/
-    │   └── overrides.json              # Manual corrections for ball labeling
+    ├── configs/                        # (Reserved for tracker configs; not currently used)
     ├── src/
     │   ├── inference/
     │   │   ├── batch_ball_labeling.py  # Generate ball labels (Step 1)
-    │   │   ├── run_tracking.py         # Run tracker on detections
-    │   │   └── export_per_sequence.py  # Export per-sequence results
-    │   ├── tracking/                   # Tracking algorithms (Kalman, Hungarian)
-    │   └── utils/                      # Helper functions (IoU, box utils)
+    │   ├── tracking/                   # (Placeholder; tracking modules not committed)
+    │   └── utils/                      # (Placeholder; helper modules not committed)
     └── train/
         ├── train_frcnn.py              # Train Faster R-CNN (Step 2)
-        ├── eval_coco.py                # Evaluate model on COCO metrics
+        ├── eval_coco.py                # Evaluate FRCNN on COCO metrics
+        ├── runs/
+        │   ├── frcnn/                  # Faster R-CNN run outputs
+        │   └── yolo/                   # YOLO scripts + run outputs for symmetry
+        │       ├── train_yolo_ultra.py # Train YOLOv8 on YOLO-format dataset
+        │       ├── convert_coco_to_yolo.py # Convert COCO to YOLO format
+        │       └── eval_coco_yolo.py   # Evaluate YOLO checkpoint with COCO metrics
         └── datasets/
             └── coco_ball.py            # Dataset loader
 

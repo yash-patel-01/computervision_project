@@ -1,0 +1,11 @@
+{
+  "data_root": "data",
+  "coco_train": "data/coco_train.json",
+  "coco_test": "data/coco_test.json",
+  "model": "yolov8n.pt",
+  "imgsz": 640,
+  "epochs": 1,
+  "batch": 16,
+  "workers": 4,
+  "limit": 50
+}

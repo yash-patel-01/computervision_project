@@ -1,0 +1,10 @@
+{
+  "model": "yolov8n.pt",
+  "epochs": 1,
+  "batch": 16,
+  "imgsz": 832,
+  "lr0": 0.005,
+  "patience": 0,
+  "device": "mps",
+  "dataset_yaml": "data/yolo_dataset_full_abs/dataset.yaml"
+}

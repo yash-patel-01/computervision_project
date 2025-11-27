@@ -1,0 +1,7 @@
+names:
+- player
+- ball
+train: /Users/yashpatel/Documents/Bocconi/Classes/Year 2/Semester 1/Deep Learning
+  for Computer Vision/Project/Code/tracking_baseline/train/runs/yolo/tmp/coco_train_limited.json
+val: /Users/yashpatel/Documents/Bocconi/Classes/Year 2/Semester 1/Deep Learning for
+  Computer Vision/Project/Code/tracking_baseline/train/runs/yolo/tmp/coco_val_limited.json

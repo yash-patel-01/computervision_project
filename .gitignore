@@ -1,11 +1,24 @@
-# Data directories
-# Large dataset directories
+# Data directories (do not commit large datasets)
+# Original raw datasets
 data/jersey-2023/
 data/tracking-2023/
+# Current working YOLO dataset (absolute symlinks)
+data/yolo_dataset_full_abs/
 
-# Large COCO annotation files (too big for GitHub: 103MB + 82MB)
+# Large COCO annotation files (too big for GitHub)
 data/coco_train.json
 data/coco_test.json
+# Any nested image/label folders under data
+data/**/images/
+data/**/labels/
+
+# Ultralytics/YOLO run artifacts (large outputs)
+tracking_baseline/train/runs/yolo/**/weights/
+tracking_baseline/train/runs/yolo/**/results.csv
+tracking_baseline/train/runs/yolo/**/labels.jpg
+tracking_baseline/train/runs/yolo/**/train_batch*.jpg
+# Local Ultralytics default project folder
+YOLOv8/
 
 # Keep small ball labeling file (4KB - will be committed)
 # data/ball_tracks.json

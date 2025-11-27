@@ -102,6 +102,7 @@ def main():
     p.add_argument('--output-dir', type=Path, default=(cwd / 'runs' / 'frcnn').resolve())
     p.add_argument('--resume', type=Path, default=None)
     p.add_argument('--log-interval', type=int, default=50)
+    p.add_argument('--dry-run', action='store_true', help='Load one batch and run a single forward/backward step, then exit')
 
     args = p.parse_args()
     device = get_device()
@@ -159,6 +160,17 @@ def main():
             'limit': args.limit,
             'num_classes': num_classes
         }, f, indent=2)
+
+    if args.dry_run:
+        model.train()
+        images, targets = next(iter(train_loader))
+        images = [img.to(device) for img in images]
+        targets = [{k: v.to(device) if torch.is_tensor(v) else v for k, v in t.items()} for t in targets]
+        loss_dict = model(images, targets)
+        losses = sum(loss for loss in loss_dict.values())
+        optimizer.zero_grad(); losses.backward(); optimizer.step()
+        print("Dry run complete: one batch forward/backward.")
+        return
 
     for epoch in range(start_epoch, args.epochs + 1):
         train_one_epoch(

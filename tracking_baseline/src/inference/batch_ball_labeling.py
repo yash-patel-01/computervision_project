@@ -1,25 +1,29 @@
 """Batch pseudo-labeling of ball across tracking-2023 sequences.
 
-This script automatically identifies which tracked objects are balls (vs players) using
+Automatically identifies which tracked objects are balls (vs players) using
 heuristics based on size, shape, and movement patterns.
 
-IMPORTANT: Must be run from project root directory (where README.md is located).
-The script uses Path.cwd() to locate data/tracking-2023/
+Run from the project root (where README.md is located) so relative paths to
+`data/tracking-2023/` resolve correctly.
 
-Generates:
-  - ball_tracks.json: {sequence_id: [ball_tid_1, ball_tid_2, ...] or []}
-  - coco_train.json: COCO-style annotations for training sequences only (42,000 images)
-  - coco_test.json: COCO-style annotations for test sequences only (36,750 images)
+Outputs:
+    - ball_tracks.json: {sequence_id: [ball_track_ids...]}
+    - coco_train.json: COCO-style annotations for training sequences
+    - coco_test.json: COCO-style annotations for test sequences
 
-Heuristic: Identifies up to 3 ball tracks per sequence that are:
-  - Small (median area < 30th percentile AND < 2000 px²)
-  - Round (aspect ratio close to 1.0, roundness > 0.7)
-  - Consistently present (not just 1-2 frame detections)
+Ball candidate heuristic (up to 3 per sequence):
+    - Small (median area below 30th percentile AND < 2000 px²)
+    - Round (median aspect ratio near 1.0 -> roundness > 0.7)
+    - Sufficient observations (>= 3 frames) & temporal presence
 
-Manual overrides can be specified in tracking_baseline/data/overrides.json
+NOTE: Previous versions supported an `overrides.json` file for manual tweaks.
+This dependency has been removed; the script no longer looks for or expects
+override data. If manual corrections are needed, edit the generated JSON files
+afterwards or adapt this script locally.
 """
 from pathlib import Path
 import json, statistics
+import argparse
 from collections import defaultdict
 import numpy as np
 
@@ -30,7 +34,7 @@ OUT_DIR = Path.cwd() / "data"
 AREA_PCT_THRESH = 30  # candidate must have median area below this percentile
 ABS_AREA_MAX = 2000   # absolute area upper bound (px²) to exclude large players
 MIN_ROUNDNESS = 0.7   # minimum roundness (aspect ratio near 1)
-MAX_BALLS = 3         # max ball tracks per sequence
+MAX_BALLS = 3         # default max ball tracks per sequence
 
 
 def load_tracks(gt_path: Path):
@@ -57,7 +61,7 @@ def stats_for_track(track_boxes):
     mean_speed = float(np.mean(dists)) if dists else 0.0
     return med_area, roundness, mean_speed
 
-def select_ball_tracks(tracks, min_obs=3):
+def select_ball_tracks(tracks, min_obs=3, max_balls: int = MAX_BALLS):
     """Return list of up to MAX_BALLS track IDs that look like balls."""
     if not tracks:
         return [], {}
@@ -104,26 +108,12 @@ def select_ball_tracks(tracks, min_obs=3):
         candidates.append((tid, combo[idx]))
     # Sort by score descending, take top MAX_BALLS
     candidates.sort(key=lambda x: x[1], reverse=True)
-    ball_tids = [tid for tid, _ in candidates[:MAX_BALLS]]
+    ball_tids = [tid for tid, _ in candidates[:max_balls]]
     return ball_tids, stats
 
-def load_overrides():
-        """Load optional overrides from tracking_baseline/data/overrides.json
-        Structure per sequence name (e.g., "SNMOT-076"):
-            {
-                "SNMOT-076": {"skip": true},
-                "SNMOT-061": {"ball_tids": [1,27]}
-            }
-        """
-        try:
-                base_dir = Path(__file__).resolve().parents[2]  # .../tracking_baseline
-                overrides_path = base_dir / "data" / "overrides.json"
-                if overrides_path.is_file():
-                        with open(overrides_path, 'r') as f:
-                                return json.load(f)
-        except Exception:
-                pass
-        return {}
+def _no_overrides():
+    """Return empty overrides (legacy placeholder kept for backward compatibility)."""
+    return {}
 
 def build_coco(seqs_ball_map, seqs_tracks, seqs_split_map, target_split=None):
     """Build COCO dataset. If target_split is specified, only include sequences from that split."""
@@ -160,7 +150,13 @@ def build_coco(seqs_ball_map, seqs_tracks, seqs_split_map, target_split=None):
     return {"images": images, "annotations": annotations, "categories": categories}
 
 def main():
-    overrides = load_overrides()
+    # Overrides removed: keep empty dict for backward compatibility.
+    overrides = _no_overrides()
+    ap = argparse.ArgumentParser(description="Generate ball_tracks.json and COCO train/test annotations")
+    ap.add_argument("--limit-seqs", type=int, default=None, help="Limit number of sequences per split (train/test) for a quick run")
+    ap.add_argument("--output-dir", type=Path, default=OUT_DIR, help="Directory to write JSON outputs")
+    ap.add_argument("--max-balls", type=int, default=MAX_BALLS, help="Maximum number of ball tracks to keep per sequence")
+    args = ap.parse_args()
     seqs_tracks = {}
     ball_map = {}
     seqs_split_map = {}  # Track which split each sequence belongs to
@@ -169,7 +165,10 @@ def main():
         split_root = ROOT / split
         if not split_root.exists():
             continue
-        for seq_dir in sorted(split_root.glob("SNMOT-*")):
+        seq_dirs = sorted(split_root.glob("SNMOT-*"))
+        if args.limit_seqs:
+            seq_dirs = seq_dirs[:args.limit_seqs]
+        for seq_dir in seq_dirs:
             seq_name = seq_dir.name
             # Apply overrides: skip sequences or set manual ball_tids
             ov = overrides.get(seq_name, {}) if isinstance(overrides, dict) else {}
@@ -185,26 +184,27 @@ def main():
                 ball_tids = list(ov["ball_tids"]) or []
                 print(f"[{split}] {seq_name}: ball_tids={ball_tids} (from overrides)")
             else:
-                ball_tids, stats = select_ball_tracks(tracks)
+                ball_tids, stats = select_ball_tracks(tracks, max_balls=args.max_balls)
                 print(f"[{split}] {seq_name}: ball_tids={ball_tids}")
             seqs_tracks[seq_name] = tracks
             ball_map[seq_name] = ball_tids
             seqs_split_map[seq_name] = split
     
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    with open(OUT_DIR / "ball_tracks.json", 'w') as f:
+    out_dir = args.output_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / "ball_tracks.json", 'w') as f:
         json.dump(ball_map, f)
     
     # Generate separate COCO files for train and test
     coco_train = build_coco(ball_map, seqs_tracks, seqs_split_map, target_split="train")
-    with open(OUT_DIR / "coco_train.json", 'w') as f:
+    with open(out_dir / "coco_train.json", 'w') as f:
         json.dump(coco_train, f)
     
     coco_test = build_coco(ball_map, seqs_tracks, seqs_split_map, target_split="test")
-    with open(OUT_DIR / "coco_test.json", 'w') as f:
+    with open(out_dir / "coco_test.json", 'w') as f:
         json.dump(coco_test, f)
     
-    print(f"Saved ball_tracks.json, coco_train.json ({len(coco_train['images'])} images), and coco_test.json ({len(coco_test['images'])} images)")
+    print(f"Saved to {out_dir}: ball_tracks.json, coco_train.json ({len(coco_train['images'])} images), coco_test.json ({len(coco_test['images'])} images)")
 
 if __name__ == "__main__":
     main()
