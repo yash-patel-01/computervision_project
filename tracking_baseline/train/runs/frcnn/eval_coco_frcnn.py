@@ -9,6 +9,8 @@ import torchvision
 from torch.utils.data import DataLoader
 from torchvision.transforms import functional as F
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from datasets.coco_ball import CocoBallDataset, collate_fn
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
@@ -101,14 +103,14 @@ def evaluate(coco_gt_path: Path, detections: list[dict]):
 def main():
     a = argparse.ArgumentParser(description='Evaluate Faster R-CNN checkpoint on test COCO')
     cwd = Path(__file__).resolve().parent
-    default_data_root = (cwd / ".." / 'data').resolve()
+    default_data_root = (cwd / ".." / ".." / ".." / ".." / 'data').resolve()
     a.add_argument('--data-root', type=Path, default=default_data_root)
     a.add_argument('--coco-json', type=Path, default=None, help='Path to coco_test.json; default under data/')
     a.add_argument('--checkpoint', type=Path, required=True)
     a.add_argument('--batch-size', type=int, default=4)
     a.add_argument('--num-workers', type=int, default=4)
     a.add_argument('--limit', type=int, default=None)
-    a.add_argument('--output', type=Path, default=(cwd / 'runs' / 'frcnn' / 'eval_metrics.json').resolve())
+    a.add_argument('--output', type=Path, default=(cwd / 'eval_metrics.json').resolve())
     a.add_argument('--progress-interval', type=int, default=500, help='Print progress every N images (set <=0 to disable)')
 
     args = a.parse_args()

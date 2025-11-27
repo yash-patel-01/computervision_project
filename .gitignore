@@ -23,8 +23,13 @@ tracking_baseline/train/runs/yolo/**/train_batch*.jpg
 tracking_baseline/train/runs/yolo/**/val_batch*.jpg
 tracking_baseline/train/runs/yolo/**/*.png
 
-# Training logs (large)
-*.log
+# Training logs - keep small result logs, exclude large verbose logs
+# Small logs with training summaries are kept (< 100KB)
+# Exclude only if they grow too large in future iterations
+
+# Temporary/intermediate config files
+data_config_yolo.yaml
+heartbeat.json
 
 # Local Ultralytics artifacts (created during training/inference)
 /runs/
@@ -74,10 +79,14 @@ ENV/
 
 # macOS
 .DS_Store
+**/.DS_Store
 .AppleDouble
 .LSOverride
 
 # Model checkpoints (large binary files)
+# Keep: best.pt (6MB - trained YOLO weights)
+# Keep: Small config/metric JSONs, CSVs, and training logs
+# Exclude: Large intermediate checkpoints
 *.pth
 *.h5
 *.ckpt

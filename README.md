@@ -33,10 +33,10 @@ The first step processes the tracking annotations to identify which tracks repre
 
 ```bash
 # Quick sanity run (limit sequences per split, choose output dir)
-python3 tracking_baseline/src/inference/batch_ball_labeling.py --limit-seqs 1 --output-dir data/tmp_check
+python3 tracking_baseline/batch_ball_labeling.py --limit-seqs 1 --output-dir data/tmp_check
 
 # Full run
-python3 tracking_baseline/src/inference/batch_ball_labeling.py
+python3 tracking_baseline/batch_ball_labeling.py
 ```
 
 This generates COCO-format annotations with proper class labels:
@@ -51,8 +51,8 @@ The heuristic looks for small, round, consistently-present objects. Manual overr
 Train the Faster R-CNN detector on the labeled data:
 
 ```bash
-cd tracking_baseline/train
-python3 train_frcnn.py --epochs 6 --batch-size 4 --data-root ../../data
+cd tracking_baseline/train/runs/frcnn
+python3 train_frcnn.py --epochs 6 --batch-size 4 --data-root ../../../../data
 ```
 
 Training takes several hours on GPU and saves checkpoints to `runs/frcnn/`. Key parameters can be adjusted via command-line flags (`--epochs`, `--batch-size`, `--lr`).
@@ -62,12 +62,12 @@ Training takes several hours on GPU and saves checkpoints to `runs/frcnn/`. Key 
 Measure detection performance on the test set:
 
 ```bash
-python3 eval_coco.py --checkpoint runs/frcnn/model_epoch6.pth --data-root ../../data --progress-interval 500
+python3 eval_coco_frcnn.py --checkpoint model_epoch6.pth --data-root ../../../../data --progress-interval 500
 ```
 
 Adjust `--progress-interval` (images per progress print) or omit it entirely to disable progress output.
 
-This computes standard COCO metrics (AP, AP50, AP75, etc.) and saves results to `runs/frcnn/eval_metrics.json`. The AP_small metric is particularly important since it specifically measures ball detection accuracy.
+This computes standard COCO metrics (AP, AP50, AP75, etc.) and saves results to `runs/frcnn/eval_metrics_frcnn.json`. The AP_small metric is particularly important since it specifically measures ball detection accuracy.
 
 ## Project Structure
 
@@ -87,23 +87,23 @@ Code/
 └── tracking_baseline/                  # Training and inference code
     ├── README.md                       # Detailed baseline documentation
     ├── requirements.txt                # Python dependencies
-    ├── configs/                        # (Reserved for tracker configs; not currently used)
-    ├── src/
-    │   ├── inference/
-    │   │   ├── batch_ball_labeling.py  # Generate ball labels (Step 1)
-    │   ├── tracking/                   # (Placeholder; tracking modules not committed)
-    │   └── utils/                      # (Placeholder; helper modules not committed)
+    ├── batch_ball_labeling.py          # Generate ball labels (Step 1)
     └── train/
-        ├── train_frcnn.py              # Train Faster R-CNN (Step 2)
-        ├── eval_coco.py                # Evaluate FRCNN on COCO metrics
-        ├── runs/
-        │   ├── frcnn/                  # Faster R-CNN run outputs
-        │   └── yolo/                   # YOLO scripts + run outputs for symmetry
-        │       ├── train_yolo_ultra.py # Train YOLOv8 on YOLO-format dataset
-        │       ├── convert_coco_to_yolo.py # Convert COCO to YOLO format
-        │       └── eval_coco_yolo.py   # Evaluate YOLO checkpoint with COCO metrics
-        └── datasets/
-            └── coco_ball.py            # Dataset loader
+        ├── datasets/
+        │   └── coco_ball.py            # Dataset loader
+        └── runs/
+            ├── frcnn/                  # Faster R-CNN scripts + outputs
+            │   ├── train_frcnn.py      # Train Faster R-CNN (Step 2)
+            │   ├── eval_coco_frcnn.py  # Evaluate FRCNN on COCO metrics
+            │   ├── config_frcnn.json   # Training configuration
+            │   ├── eval_metrics_frcnn.json # Test set metrics
+            │   └── training_frcnn.log  # Training logs
+            └── yolo/                   # YOLO scripts + outputs
+                ├── train_yolo.py       # Train YOLOv8 on YOLO-format dataset
+                ├── convert_coco_to_yolo.py # Convert COCO to YOLO format
+                ├── eval_coco_yolo.py   # Evaluate YOLO checkpoint with COCO metrics
+                └── azure_full_v12/     # Trained YOLOv8 results
+                    └── weights/best.pt # Best model weights
 
 ```
 
@@ -119,6 +119,17 @@ Install dependencies:
 ```bash
 pip install -r tracking_baseline/requirements.txt
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121  # CUDA 12.1
+```
+
+If YOLO dataset symlinks are broken or missing, recreate them:
+```bash
+python3 tracking_baseline/train/runs/yolo/convert_coco_to_yolo.py \
+  --coco-train data/coco_train.json \
+  --coco-val data/coco_test.json \
+  --data-root data \
+  --out-root data/yolo_dataset_full_unique \
+  --workers 8 \
+  --relative-path
 ```
 
 Requirements: Python 3.10+, PyTorch 2.5+, ~190GB disk space for the full dataset. GPU strongly recommended for training.

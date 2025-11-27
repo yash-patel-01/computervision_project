@@ -113,10 +113,16 @@ def convert_split(
 
     return processed, len(anns)
 
-def write_dataset_yaml(out_root: Path, names: list[str]):
+def write_dataset_yaml(out_root: Path, names: list[str], use_relative_path: bool = False):
     yaml_path = out_root / 'dataset.yaml'
+    # Use relative path from project root for portability
+    if use_relative_path:
+        # Assuming out_root is under data/, make it relative to project root
+        path_str = str(out_root)
+    else:
+        path_str = str(out_root)
     content = [
-        f"path: {out_root}",
+        f"path: {path_str}",
         "train: images/train",
         "val: images/val",
         "names:",
@@ -138,6 +144,7 @@ def main():
     ap.add_argument('--assume-height', type=int, default=None, help='Assume fixed height if missing in JSON')
     ap.add_argument('--workers', type=int, default=4, help='Thread workers for conversion')
     ap.add_argument('--progress-interval', type=int, default=100, help='Print progress every N images (0=disable)')
+    ap.add_argument('--relative-path', action='store_true', help='Use relative paths in dataset.yaml for portability')
     args = ap.parse_args()
 
     coco_train = args.coco_train or (args.data_root / 'coco_train.json')
@@ -150,7 +157,7 @@ def main():
     names = [c['name'] for c in sorted(train_data['categories'], key=lambda x: x['id'])]
 
     args.out_root.mkdir(parents=True, exist_ok=True)
-    yaml_path = write_dataset_yaml(args.out_root, names)
+    yaml_path = write_dataset_yaml(args.out_root, names, use_relative_path=args.relative_path)
 
     assume_size = None
     if args.assume_width and args.assume_height:

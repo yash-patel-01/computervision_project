@@ -11,6 +11,8 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.transforms import functional as F
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from datasets.coco_ball import CocoBallDataset, collate_fn
 
 
@@ -89,7 +91,7 @@ def save_checkpoint(model, optimizer, epoch, out_dir: Path, best: bool = False):
 def main():
     p = argparse.ArgumentParser(description="Train Faster R-CNN on pseudo-labeled COCO (player/ball)")
     cwd = Path(__file__).resolve().parent
-    default_data_root = (cwd / ".." / "data").resolve()
+    default_data_root = (cwd / ".." / ".." / ".." / ".." / "data").resolve()
     p.add_argument('--data-root', type=Path, default=default_data_root, help='Path to Project/Code/data')
     p.add_argument('--coco-json', type=Path, default=None, help='Path to coco_train.json; default under data/')
     p.add_argument('--epochs', type=int, default=6)
@@ -99,7 +101,7 @@ def main():
     p.add_argument('--weight-decay', type=float, default=0.0005)
     p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--limit', type=int, default=None, help='Optional: limit number of images for a quick dry-run')
-    p.add_argument('--output-dir', type=Path, default=(cwd / 'runs' / 'frcnn').resolve())
+    p.add_argument('--output-dir', type=Path, default=cwd.resolve())
     p.add_argument('--resume', type=Path, default=None)
     p.add_argument('--log-interval', type=int, default=50)
     p.add_argument('--dry-run', action='store_true', help='Load one batch and run a single forward/backward step, then exit')
