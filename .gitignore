@@ -3,10 +3,8 @@
 data/jersey-2023/
 data/tracking-2023/
 
-# Generated YOLO datasets (symlinks/copies)
-data/yolo_dataset_full_abs/
+# Generated YOLO dataset (symlinks/copies)
 data/yolo_dataset_full_unique/
-data/yolo_dataset_azure/
 
 # Large COCO annotation files (too big for GitHub)
 data/coco_train.json
@@ -28,16 +26,12 @@ tracking_baseline/train/runs/yolo/**/*.png
 # Training logs (large)
 *.log
 
-# Local Ultralytics default project folder and artifacts
-YOLOv8/
+# Local Ultralytics artifacts (created during training/inference)
 /runs/
 
 # Downloaded pretrained weights (not our trained models)
 yolov8n.pt
 yolo11n.pt
-
-# Keep small ball labeling file (4KB - will be committed)
-# data/ball_tracks.json
 
 # Python
 __pycache__/
@@ -83,20 +77,9 @@ ENV/
 .AppleDouble
 .LSOverride
 
-# Model checkpoints and training outputs
-# Model checkpoint files (large binary files)
+# Model checkpoints (large binary files)
 *.pth
-# *.pt excluded above with specific exceptions for best.pt
 *.h5
 *.ckpt
-
-# Keep training results and metrics (small JSON files will be committed)
-# tracking_baseline/train/runs/frcnn/eval_metrics.json
-# tracking_baseline/train/runs/frcnn/config.json
-# tracking_baseline/train/runs/frcnn/heartbeat.json
-
-# Keep training logs (will be committed)
-# *.log
-
-# Jupyter notebook (keep the notebook file, commit it)
-# model_evaluation.ipynb
+# Note: *.pt excluded via specific patterns above (last.pt, epoch*.pt)
+# but best.pt is kept for trained model weights
