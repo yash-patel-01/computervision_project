@@ -1,5 +1,5 @@
 # Data directories (do not commit large datasets)
-# Original raw datasets
+# Original raw datasets - Part 1: Player & Ball Detection
 data/jersey-2023/
 data/tracking-2023/
 
@@ -13,6 +13,11 @@ data/coco_test.json
 # Any nested image/label folders under data
 data/**/images/
 data/**/labels/
+
+# Part 2: Jersey Number Recognition - workspace folder
+# Excludes downloaded datasets, generated crops, annotations, and model weights
+# The notebook (Jersey-Number_Recognition.ipynb) is tracked in git
+SoccerNetJersey/
 
 # Ultralytics/YOLO training artifacts (large files)
 # Keep best.pt (6MB - critical trained weights), exclude other checkpoints
@@ -35,8 +40,10 @@ heartbeat.json
 /runs/
 
 # Downloaded pretrained weights (not our trained models)
+# yolov8n.pt used by both projects for fine-tuning
+# yolov8n-pose.pt used by jersey recognition for pose estimation
 yolov8n.pt
-yolo11n.pt
+yolov8n-pose.pt
 
 # Python
 __pycache__/
@@ -84,11 +91,8 @@ ENV/
 .LSOverride
 
 # Model checkpoints (large binary files)
-# Keep: best.pt (6MB - trained YOLO weights)
-# Keep: Small config/metric JSONs, CSVs, and training logs
-# Exclude: Large intermediate checkpoints
+# Keep: best.pt (trained YOLO weights), small config/metric JSONs, CSVs, logs
+# Exclude: Large intermediate checkpoints (.pth for PyTorch, .h5 for Keras, .ckpt for TensorFlow)
 *.pth
 *.h5
 *.ckpt
-# Note: *.pt excluded via specific patterns above (last.pt, epoch*.pt)
-# but best.pt is kept for trained model weights
