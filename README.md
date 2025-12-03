@@ -328,6 +328,20 @@ Use the trained models from `SoccerNetJersey/`:
 - **`model_evaluation.ipynb`** - Comprehensive model comparison: FRCNN vs YOLOv8 (Part 1)
 - **`model_comparison_demo.ipynb`** - Side-by-side visual inference comparison (Part 1)
 - **`Jersey-Number_Recognition.ipynb`** - Complete jersey number pipeline (Part 2)
+- **`Layer_Transform_Visualizations.ipynb`** - Visual walkthrough of YOLOv8 feature transformations and detections; saves PNGs to `visual_comparison/layer_visualizations/`
+
+### Visualization Outputs
+
+- Generated images are saved to `visual_comparison/layer_visualizations/`:
+  - `layer_viz_1_original.png` — Original input image
+  - `layer_viz_2_preprocessed.png` — Resized input (832×832)
+  - `layer_viz_3a_early_conv.png` — Early convolutional features
+  - `layer_viz_3b_mid_features.png` — Mid-level features
+  - `layer_viz_3c_high_features.png` — High-level features
+  - `layer_viz_3d_deep_features.png` — Deep semantic features
+  - `layer_viz_4_final_detections.png` — Final detections overlay
+
+To regenerate, open `Layer_Transform_Visualizations.ipynb` and run all cells. Ensure `tracking_baseline/train/runs/yolo/azure_full_v12/weights/best.pt` exists.
 
 ## Documentation
 
