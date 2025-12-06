@@ -328,11 +328,11 @@ Use the trained models from `SoccerNetJersey/`:
 - **`model_evaluation.ipynb`** - Comprehensive model comparison: FRCNN vs YOLOv8 (Part 1)
 - **`model_comparison_demo.ipynb`** - Side-by-side visual inference comparison (Part 1)
 - **`Jersey-Number_Recognition.ipynb`** - Complete jersey number pipeline (Part 2)
-- **`Layer_Transform_Visualizations.ipynb`** - Visual walkthrough of YOLOv8 feature transformations and detections; saves PNGs to `visual_comparison/layer_visualizations/`
+- **`Layer_Transform_Visualizations.ipynb`** - Visual walkthrough of YOLOv8 feature transformations and detections; saves PNGs to `layer_visualizations/`
 
 ### Visualization Outputs
 
-- Generated images are saved to `visual_comparison/layer_visualizations/`:
+- Generated images are saved to `layer_visualizations/`:
   - `layer_viz_1_original.png` — Original input image
   - `layer_viz_2_preprocessed.png` — Resized input (832×832)
   - `layer_viz_3a_early_conv.png` — Early convolutional features

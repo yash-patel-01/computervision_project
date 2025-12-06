@@ -71,7 +71,8 @@ wheels/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Virtual environments
+# Layer visualization outputs (generated PNGs)
+layer_visualizations/
 venv/
 env/
 ENV/
