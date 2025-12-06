@@ -240,7 +240,6 @@ Combine all components for end-to-end jersey number recognition:
 
 **See:** `Jersey-Number_Recognition.ipynb` - Inference and visualization sections
 
-**Documentation:** `Jersey Number Recognition.docx` - Detailed methodology and results
 
 ## Project Structure
 
@@ -285,7 +284,6 @@ Code/
 │
 ├─── PART 2: Jersey Number Recognition ───
 ├── Jersey-Number_Recognition.ipynb     # Complete jersey number pipeline
-├── Jersey Number Recognition.docx      # Detailed methodology documentation
 └── SoccerNetJersey/                    # Jersey recognition workspace (not in git)
     ├── jersey-2023/                    # Jersey dataset
     │   ├── train/                      # Training data
@@ -347,7 +345,6 @@ To regenerate, open `Layer_Transform_Visualizations.ipynb` and run all cells. En
 
 - **`README.md`** (this file) - Joint project overview and setup
 - **`tracking_baseline/README.md`** - Detailed player/ball detection documentation
-- **`Jersey Number Recognition.docx`** - Jersey number recognition methodology and results
 - **`.gitignore`** - Excludes large files (datasets, checkpoints) from version control
 
 ## Requirements
@@ -390,7 +387,6 @@ See: `Jersey-Number_Recognition.ipynb` for detailed setup
 - **Digit classification (EfficientNet-B0):** High accuracy on digit recognition
 - **End-to-end pipeline:** Combines detection → extraction → recognition for complete jersey number identification
 
-See `Jersey Number Recognition.docx` for detailed results and methodology.
 
 ## Citation
 
